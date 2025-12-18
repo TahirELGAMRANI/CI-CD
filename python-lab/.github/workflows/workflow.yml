@@ -5,12 +5,12 @@ on:
     branches: [ main, master ]
     paths:
       - 'python-lab/**'
-      - '.github/workflows/python-ci-cd.yml'
+      - 'python-lab/.github/workflows/workflow.yml'
   pull_request:
     branches: [ main, master ]
     paths:
       - 'python-lab/**'
-      - '.github/workflows/python-ci-cd.yml'
+      - 'python-lab/.github/workflows/workflow.yml'
 
 env:
   PYTHON_VERSION: '3.11'
@@ -76,4 +76,3 @@ jobs:
         oc apply -f python-lab/openshift/
         oc set image deployment/ci-cd-python-app ci-cd-python-app=${{ env.IMAGE_NAME }}-py:${{ github.sha }} || \
         oc rollout latest ci-cd-python-app
-

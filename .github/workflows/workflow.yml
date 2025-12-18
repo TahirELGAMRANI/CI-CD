@@ -5,12 +5,12 @@ on:
     branches: [ main, master ]
     paths:
       - 'javascript-lab/**'
-      - '.github/workflows/javascript-ci-cd.yml'
+      - '.github/workflows/workflow.yml'
   pull_request:
     branches: [ main, master ]
     paths:
       - 'javascript-lab/**'
-      - '.github/workflows/javascript-ci-cd.yml'
+      - '.github/workflows/workflow.yml'
 
 env:
   NODE_VERSION: '18'
