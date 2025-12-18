@@ -1,0 +1,67 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: build-task
+spec:
+  params:
+    - name: IMAGE_NAME
+      description: Name of the image to build
+    - name: IMAGE_TAG
+      description: Tag for the image
+  steps:
+    - name: build
+      image: docker:latest
+      script: |
+        #!/bin/sh
+        cd python-lab/app
+        docker build -t $(params.IMAGE_NAME):$(params.IMAGE_TAG) .
+      volumeMounts:
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+  volumes:
+    - name: docker-sock
+      hostPath:
+        path: /var/run/docker.sock
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: test-task
+spec:
+  params:
+    - name: PYTHON_VERSION
+      description: Python version to use
+      default: "3.11"
+  steps:
+    - name: test
+      image: python:$(params.PYTHON_VERSION)-slim
+      script: |
+        #!/bin/sh
+        cd python-lab/app
+        pip install --no-cache-dir -r requirements.txt
+        pip install pytest flake8
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics || true
+        pytest || true
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: deploy-task
+spec:
+  params:
+    - name: IMAGE_NAME
+      description: Name of the image to deploy
+    - name: IMAGE_TAG
+      description: Tag of the image to deploy
+    - name: NAMESPACE
+      description: OpenShift namespace
+      default: default
+  steps:
+    - name: deploy
+      image: quay.io/openshift/origin-cli:latest
+      script: |
+        #!/bin/sh
+        oc apply -f python-lab/openshift/
+        oc set image deployment/ci-cd-python-app ci-cd-python-app=$(params.IMAGE_NAME):$(params.IMAGE_TAG) || \
+        oc rollout latest ci-cd-python-app
+

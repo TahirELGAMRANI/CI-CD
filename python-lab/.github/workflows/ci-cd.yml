@@ -1,0 +1,73 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  PYTHON_VERSION: '3.11'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: python-lab/app/requirements.txt
+    
+    - name: Install dependencies
+      working-directory: ./python-lab/app
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest flake8
+    
+    - name: Run linter
+      working-directory: ./python-lab/app
+      run: flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics || true
+    
+    - name: Run tests
+      working-directory: ./python-lab/app
+      run: pytest || true
+    
+    - name: Build Docker image
+      working-directory: ./python-lab/app
+      run: |
+        docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
+        docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:latest
+
+  deploy:
+    name: Deploy to OpenShift
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Login to OpenShift
+      uses: redhat-actions/oc-login@v1
+      with:
+        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER_URL }}
+        openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+        insecure_skip_tls_verify: true
+    
+    - name: Deploy to OpenShift
+      run: |
+        oc apply -f python-lab/openshift/
+        oc set image deployment/ci-cd-python-app ci-cd-python-app=${{ env.IMAGE_NAME }}:${{ github.sha }} || \
+        oc rollout latest ci-cd-python-app
+

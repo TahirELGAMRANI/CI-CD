@@ -1,0 +1,15 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: ci-cd-pipeline-run
+spec:
+  pipelineRef:
+    name: ci-cd-pipeline
+  params:
+    - name: IMAGE_NAME
+      value: ci-cd-javascript-app
+    - name: IMAGE_TAG
+      value: latest
+    - name: NAMESPACE
+      value: default
+

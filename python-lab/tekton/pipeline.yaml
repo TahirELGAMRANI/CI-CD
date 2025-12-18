@@ -1,0 +1,47 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ci-cd-pipeline
+spec:
+  params:
+    - name: IMAGE_NAME
+      description: Name of the image to build
+      default: ci-cd-python-app
+    - name: IMAGE_TAG
+      description: Tag for the image
+      default: latest
+    - name: NAMESPACE
+      description: OpenShift namespace
+      default: default
+  tasks:
+    - name: test
+      taskRef:
+        name: test-task
+      params:
+        - name: PYTHON_VERSION
+          value: "3.11"
+    
+    - name: build
+      taskRef:
+        name: build-task
+      params:
+        - name: IMAGE_NAME
+          value: $(params.IMAGE_NAME)
+        - name: IMAGE_TAG
+          value: $(params.IMAGE_TAG)
+      runAfter:
+        - test
+    
+    - name: deploy
+      taskRef:
+        name: deploy-task
+      params:
+        - name: IMAGE_NAME
+          value: $(params.IMAGE_NAME)
+        - name: IMAGE_TAG
+          value: $(params.IMAGE_TAG)
+        - name: NAMESPACE
+          value: $(params.NAMESPACE)
+      runAfter:
+        - build
+

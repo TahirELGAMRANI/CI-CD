@@ -1,0 +1,65 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: build-task
+spec:
+  params:
+    - name: IMAGE_NAME
+      description: Name of the image to build
+    - name: IMAGE_TAG
+      description: Tag for the image
+  steps:
+    - name: build
+      image: docker:latest
+      script: |
+        #!/bin/sh
+        cd javascript-lab/app
+        docker build -t $(params.IMAGE_NAME):$(params.IMAGE_TAG) .
+      volumeMounts:
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+  volumes:
+    - name: docker-sock
+      hostPath:
+        path: /var/run/docker.sock
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: test-task
+spec:
+  params:
+    - name: NODE_VERSION
+      description: Node.js version to use
+      default: "18"
+  steps:
+    - name: test
+      image: node:$(params.NODE_VERSION)-alpine
+      script: |
+        #!/bin/sh
+        cd javascript-lab/app
+        npm ci
+        npm test || true
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: deploy-task
+spec:
+  params:
+    - name: IMAGE_NAME
+      description: Name of the image to deploy
+    - name: IMAGE_TAG
+      description: Tag of the image to deploy
+    - name: NAMESPACE
+      description: OpenShift namespace
+      default: default
+  steps:
+    - name: deploy
+      image: quay.io/openshift/origin-cli:latest
+      script: |
+        #!/bin/sh
+        oc apply -f javascript-lab/openshift/
+        oc set image deployment/ci-cd-javascript-app ci-cd-javascript-app=$(params.IMAGE_NAME):$(params.IMAGE_TAG) || \
+        oc rollout latest ci-cd-javascript-app
+

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ci-cd-python-app
+  labels:
+    app: ci-cd-python-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ci-cd-python-app
+  template:
+    metadata:
+      labels:
+        app: ci-cd-python-app
+    spec:
+      containers:
+      - name: ci-cd-python-app
+        image: ci-cd-python-app:latest
+        ports:
+        - containerPort: 5000
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "5000"
+        - name: FLASK_ENV
+          value: "production"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+

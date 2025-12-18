@@ -1,0 +1,23 @@
+{
+  "name": "ci-cd-javascript-app",
+  "version": "1.0.0",
+  "description": "Sample JavaScript application for CI/CD pipeline",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest",
+    "lint": "eslint src/"
+  },
+  "keywords": ["ci-cd", "express", "nodejs"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "eslint": "^8.42.0",
+    "supertest": "^6.3.3"
+  }
+}
+

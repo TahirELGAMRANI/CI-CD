@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ci-cd-javascript-app
+  labels:
+    app: ci-cd-javascript-app
+spec:
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: ci-cd-javascript-app
+  type: ClusterIP
+

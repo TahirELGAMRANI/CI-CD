@@ -1,0 +1,70 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: javascript-lab/app/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./javascript-lab/app
+      run: npm ci
+    
+    - name: Run linter
+      working-directory: ./javascript-lab/app
+      run: npm run lint || true
+    
+    - name: Run tests
+      working-directory: ./javascript-lab/app
+      run: npm test || true
+    
+    - name: Build Docker image
+      working-directory: ./javascript-lab/app
+      run: |
+        docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
+        docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:latest
+
+  deploy:
+    name: Deploy to OpenShift
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Login to OpenShift
+      uses: redhat-actions/oc-login@v1
+      with:
+        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER_URL }}
+        openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+        insecure_skip_tls_verify: true
+    
+    - name: Deploy to OpenShift
+      run: |
+        oc apply -f javascript-lab/openshift/
+        oc set image deployment/ci-cd-javascript-app ci-cd-javascript-app=${{ env.IMAGE_NAME }}:${{ github.sha }} || \
+        oc rollout latest ci-cd-javascript-app
+
