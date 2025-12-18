@@ -1,4 +1,6 @@
-# CI/CD Final Project
+# CI/CD Final Project - CI/CD Pipeline Implementation
+
+**Project Name:** CI/CD Pipeline Implementation with GitHub Actions, Tekton, and OpenShift
 
 This project demonstrates a complete CI/CD pipeline setup using GitHub Actions, Tekton, and OpenShift.
 

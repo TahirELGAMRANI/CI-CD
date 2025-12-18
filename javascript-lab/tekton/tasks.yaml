@@ -62,4 +62,24 @@ spec:
         oc apply -f javascript-lab/openshift/
         oc set image deployment/ci-cd-javascript-app ci-cd-javascript-app=$(params.IMAGE_NAME):$(params.IMAGE_TAG) || \
         oc rollout latest ci-cd-javascript-app
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: cleanup-task
+spec:
+  params:
+    - name: NAMESPACE
+      description: OpenShift namespace
+      default: default
+  steps:
+    - name: cleanup
+      image: quay.io/openshift/origin-cli:latest
+      script: |
+        #!/bin/sh
+        echo "Cleaning up temporary resources..."
+        # Clean up any temporary pods or resources created during pipeline
+        oc delete pod --field-selector=status.phase=Succeeded -n $(params.NAMESPACE) --ignore-not-found=true || true
+        oc delete pod --field-selector=status.phase=Failed -n $(params.NAMESPACE) --ignore-not-found=true || true
+        echo "Cleanup completed"
 
